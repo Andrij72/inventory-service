@@ -1,18 +1,32 @@
-package com.akul.microservices.invertory;
+package com.akul.microservices.inventory;
 
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.springframework.context.annotation.Bean;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
-@TestConfiguration(proxyBeanMethods = false)
-class TestcontainersConfiguration {
+@SuppressWarnings("rawtypes")
+@ActiveProfiles("test")
+@TestConfiguration
+public class TestcontainersConfiguration {
 
-	@Bean
-	@ServiceConnection
-	MySQLContainer<?> mysqlContainer() {
-		return new MySQLContainer<>(DockerImageName.parse("mysql:latest"));
-	}
+    public static MySQLContainer mysql = new MySQLContainer(DockerImageName.parse("mysql:8.0.32"))
+            .withDatabaseName("testdb")
+            .withUsername("test")
+            .withPassword("test");
 
+    static {
+        mysql.start();
+    }
+
+    @DynamicPropertySource
+    static void configureProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", () ->
+                mysql.getJdbcUrl() + "?serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true");
+        registry.add("spring.datasource.username", mysql::getUsername);
+        registry.add("spring.datasource.password", mysql::getPassword);
+        registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
+    }
 }

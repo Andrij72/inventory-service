@@ -1,4 +1,4 @@
-package com.akul.microservices.invertory;
+package com.akul.microservices.inventory;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
