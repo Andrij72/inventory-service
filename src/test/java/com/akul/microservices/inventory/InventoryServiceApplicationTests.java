@@ -15,7 +15,7 @@ import org.testcontainers.containers.MySQLContainer;
 
 import static io.restassured.RestAssured.given;
 
-@Import(TestcontainersConfiguration.class)
+
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class InventoryServiceApplicationTests {
 

@@ -1,0 +1,21 @@
+services:
+
+  inventory-service:
+    image: inventory-service:latest
+    container_name: inventory-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASS: ${MYSQL_PASS}
+    networks:
+      - microservices-net
+
+networks:
+  microservices-net:
+    driver: bridge
