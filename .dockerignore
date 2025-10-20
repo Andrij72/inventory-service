@@ -1,14 +1,20 @@
-docker/mysql/data
-
-*.iml
-.idea/
-.vscode/
-
+HELP.md
 target/
-build/
-*.class
-*.jar
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
 
-*.log
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
 
-.git/
+.env
+mysql
+
+docker/mysql/data
+docker-compose.*.yml
+
+src/main/resources/application.properties
+!src/main/resources/application.properties.example
