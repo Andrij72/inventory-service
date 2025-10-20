@@ -41,16 +41,44 @@
     ├── Dockerfile
     └── README.md
 
+## 🔗 Service Integration
+
+The **Inventory Service** communicates with the **Order Service** via a **Feign Client**.  
+All inter-service communication is routed through the **API Gateway**, which handles:
+- Circuit breaking
+- Rate limiting
+- Retries and fallback logic (powered by Resilience4j)
+
+This design ensures system resilience and prevents cascading failures between services.
+
+---
+
+## ⚙️ Environment Configuration
+
+All sensitive parameters (like database credentials) are stored in the `.env` file located in the **project root directory**.
+
+### 📄 Example `.env` file
+ROOT_MYSQL_PASS=your_root_password
+MYSQL_USER=inventory_user
+MYSQL_PASS=inventory_password
+
+These variables are used inside the `docker-compose.*yml`:
+
+```yaml
+environment:
+  ROOT_MYSQL_PASS: ${ROOT_MYSQL_PASS}
+  MYSQL_USER: ${MYSQL_USER}
+  MYSQL_PASSWORD: ${MYSQL_PASS}  
+```
 ---
 ## 🐳 Docker Compose Examples
-
 I provided multiple Docker Compose configurations to simplify local development, intermediate dev builds,
 and production deployment:
 
     docker-compose-examples/
-    ├── docker-compose.local.yml # Starts only MySQL; Inventory Service must be run manually via IntelliJ or ./mvnw spring-boot:run
-    ├── docker-compose.override.yml # Starts MySQL + Inventory Service image (dev-latest) for intermediate development
-    ├── docker-compose.prod.yml # Starts MySQL + Inventory Service release image for productionigurations to simplify local development, intermediate dev builds, and production deployment:
+    ├── docker-compose.local.yml     # Starts only MySQL; Inventory Service must be run manually via IntelliJ or ./mvnw spring-boot:run
+    ├── docker-compose.override.yml  # Starts MySQL + Inventory Service image (dev-latest) for intermediate development
+    ├── docker-compose.prod.yml      # Starts MySQL + Inventory Service release image for productionigurations to simplify local development, intermediate dev builds, and production deployment:
 
 
 - **Local development**: MySQL only; run Inventory Service via IntelliJ or CLI.
@@ -83,13 +111,20 @@ or
 
 -----
 ## 📌 REST API Endpoints
-| Method | Endpoint               | Description                     |
-|--------|-----------------------|---------------------------------|
-| GET    | /api/inventory        | Get all inventory items         |
-| GET    | /api/inventory/{id}   | Get a specific inventory item  |
-| POST   | /api/inventory        | Create a new inventory record  |
-| PUT    | /api/inventory/{id}   | Update an inventory record     |
-| DELETE | /api/inventory/{id}   | Delete an inventory record     |
+
+Current implementation supports the following endpoint:
+
+| Method | Endpoint                         | Description                          |
+|--------|----------------------------------|--------------------------------------|
+| GET    | `/api/v1/inventory`              | Check if a product is available in stock |
+
+**Example request:**
+GET /api/v1/inventory?skuCode=ABC123&quantity=5
+
+**Response:**
+true
+
+Additional endpoints for stock reservation, release, and update will be added in future releases.
 
 ------
 ## 🛠️ Development Workflow
