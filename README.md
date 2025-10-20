@@ -111,13 +111,20 @@ or
 
 -----
 ## 📌 REST API Endpoints
-| Method | Endpoint               | Description                     |
-|--------|-----------------------|---------------------------------|
-| GET    | /api/inventory        | Get all inventory items         |
-| GET    | /api/inventory/{id}   | Get a specific inventory item  |
-| POST   | /api/inventory        | Create a new inventory record  |
-| PUT    | /api/inventory/{id}   | Update an inventory record     |
-| DELETE | /api/inventory/{id}   | Delete an inventory record     |
+
+Current implementation supports the following endpoint:
+
+| Method | Endpoint                         | Description                          |
+|--------|----------------------------------|--------------------------------------|
+| GET    | `/api/v1/inventory`              | Check if a product is available in stock |
+
+**Example request:**
+GET /api/v1/inventory?skuCode=ABC123&quantity=5
+
+**Response:**
+true
+
+Additional endpoints for stock reservation, release, and update will be added in future releases.
 
 ------
 ## 🛠️ Development Workflow
