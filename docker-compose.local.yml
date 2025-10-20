@@ -1,0 +1,25 @@
+version: "3.9"
+
+
+services:
+  mysql:
+    image: mysql:8.0.32
+    container_name: mysql_inventory
+    restart: always
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${ROOT_MYSQL_PASS}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASS}
+      MYSQL_DATABASE: inventory_service
+    volumes:
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./docker/mysql/data:/var/lib/mysql
+    networks:
+      - microservices-net
+
+networks:
+  microservices-net:
+    driver: bridge
+

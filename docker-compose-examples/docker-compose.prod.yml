@@ -1,0 +1,37 @@
+services:
+
+
+  mysql:
+    image: mysql:8.0.32
+    container_name: mysql_inventory
+    restart: always
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${ROOT_MYSQL_PASS}
+      MYSQL_DATABASE: inventory_service
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASS}
+    volumes:
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./docker/mysql/data:/var/lib/mysql
+    networks:
+      - microservices-net
+
+  inventory-service:
+    image: andr72/inventory-service:v0.0.1
+    container_name: inventory-service
+    restart: always
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_DATA_MYSQL_URI: jdbc:mysql://mysql:3306/inventory_service?useSSL=false&serverTimezone=UTC&authSource=admin
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+      - mysql
+    networks:
+      - microservices-net
+
+networks:
+  microservices-net:
+    driver: bridge
