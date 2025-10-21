@@ -139,12 +139,15 @@ CI/CD via GitHub Actions:
 
 ---
 
-## 📌 Roadmap
+## 🧪 Integration Tests
 
-- Add request validation (Spring Validation)
-- Add JUnit + Testcontainers tests
-- Integrate with Order Service using **Resilience + Feign**
-- Add service monitoring with Prometheus + Grafana
+The project includes both lightweight unit tests and full integration tests:
+
+- ✅ Light tests: run via MockMvc to validate REST endpoints and business logic without starting the full context.
+
+- ✅ Full integration tests: use Testcontainers to start a real MySQL instance and verify end-to-end functionality (database + HTTP layer).
+
+These tests ensure the service is stable, isolated, and ready for production-like environments.
 
 ---
 
