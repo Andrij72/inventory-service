@@ -9,13 +9,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.ActiveProfiles;
 import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.junit.jupiter.Testcontainers;
+
+import java.util.List;
+import java.util.Map;
 
 import static io.restassured.RestAssured.given;
 
-
+@ActiveProfiles("test")
+@Testcontainers
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class InventoryServiceApplicationTests {
 
@@ -41,6 +46,8 @@ class InventoryServiceApplicationTests {
 
         jdbcTemplate.update("INSERT INTO t_inventory (sku_code, quantity) VALUES (?, ?)", "iphone_14", 10);
         jdbcTemplate.update("INSERT INTO t_inventory (sku_code, quantity) VALUES (?, ?)", "samsung_a90", 0);
+        List<Map<String,Object>> tables = jdbcTemplate.queryForList("SHOW TABLES;");
+        tables.forEach(System.out::println);
     }
 
     static {
