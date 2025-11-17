@@ -119,7 +119,7 @@ Current implementation supports the following endpoint:
 | GET    | `/api/v1/inventory`              | Check if a product is available in stock |
 
 **Example request:**
-GET /api/v1/inventory?skuCode=ABC123&quantity=5
+GET /api/v1/inventory?sku=ABC123&quantity=5
 
 **Response:**
 true

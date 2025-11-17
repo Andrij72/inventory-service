@@ -21,7 +21,7 @@ public class InventoryController {
     private final InventoryService inventoryService;
 
     @GetMapping
-    public boolean isProductAvailable(@RequestParam("skuCode") String skuCode, @RequestParam("quantity") Integer quantity) {
-        return inventoryService.isProductInStock(skuCode, quantity);
+    public boolean isProductAvailable(@RequestParam("sku") String sku, @RequestParam("quantity") Integer quantity) {
+        return inventoryService.isProductInStock(sku, quantity);
     }
 }

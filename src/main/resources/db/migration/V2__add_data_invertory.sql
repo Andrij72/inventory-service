@@ -1,4 +1,4 @@
 insert into t_inventory (quantity, sku_code)
-    values (10, 'iphone_15'),
-           (10, 'samsung_a90'),
-           (10, 'iphone_14')
+    values (10, 'Xiaomi-Redmi-Note-12'),
+           (10, 'Samsung-A90'),
+           (10, 'iPhone-14-Pro')

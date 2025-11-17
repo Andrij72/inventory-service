@@ -45,7 +45,7 @@ class InventoryServiceIntegrationTest {
     @Test
     void shouldReturnTrueWhenEnoughQuantityAvailable() throws Exception {
         mockMvc.perform(get("/api/v1/inventory")
-                        .param("skuCode", "iphone_15")
+                        .param("sku", "iphone_15")
                         .param("quantity", "10"))
                 .andExpect(status().isOk())
                 .andExpect(content().string("true"));
@@ -54,7 +54,7 @@ class InventoryServiceIntegrationTest {
     @Test
     void shouldReturnFalseWhenNotEnoughQuantity() throws Exception {
         mockMvc.perform(get("/api/v1/inventory")
-                        .param("skuCode", "ps5")
+                        .param("sku", "ps5")
                         .param("quantity", "10"))
                 .andExpect(status().isOk())
                 .andExpect(content().string("false"));

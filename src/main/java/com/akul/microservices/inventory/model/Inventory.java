@@ -25,7 +25,7 @@ public class Inventory {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @Column(name = "sku_code")
-    private String skuCode;
+    private String sku;
     private int quantity;
 
 }

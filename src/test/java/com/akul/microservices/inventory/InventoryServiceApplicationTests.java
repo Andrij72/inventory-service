@@ -61,7 +61,7 @@ class InventoryServiceApplicationTests {
     @Test
     void shouldReturnTrueWhenProductInStock() {
         given()
-                .queryParam("skuCode", "iphone_14")
+                .queryParam("sku", "iphone_14")
                 .queryParam("quantity", 5)
                 .when()
                 .get("/api/v1/inventory")
@@ -73,7 +73,7 @@ class InventoryServiceApplicationTests {
     @Test
     void shouldReturnFalseWhenProductOutOfStock() {
         given()
-                .queryParam("skuCode", "samsung_a90")
+                .queryParam("sku", "samsung_a90")
                 .queryParam("quantity", 15)
                 .when()
                 .get("/api/v1/inventory")
@@ -85,7 +85,7 @@ class InventoryServiceApplicationTests {
     @Test
     void shouldReturnFalseWhenProductDoesNotExist() {
         given()
-                .queryParam("skuCode", "non_existing")
+                .queryParam("sku", "non_existing")
                 .queryParam("quantity", 5)
                 .when()
                 .get("/api/v1/inventory")

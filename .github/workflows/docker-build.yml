@@ -139,4 +139,4 @@ jobs:
 
       - name: Run API tests
         run: |
-          curl -v "http://localhost:8082/api/v1/inventory?skuCode=iphone_15&quantity=3" || exit 1
+          curl -v "http://localhost:8082/api/v1/inventory?sku=iphone_15&quantity=3" || exit 1
