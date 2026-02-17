@@ -1,4 +1,7 @@
-insert into t_inventory (quantity, sku_code)
-    values (10, 'Xiaomi-Redmi-Note-12'),
-           (10, 'Samsung-A90'),
-           (10, 'iPhone-14-Pro')
+INSERT INTO inventory (sku_code, available_quantity)
+VALUES
+    ('SKU1', 10),
+    ('SKU2', 10),
+    ('SKU3', 10),
+    ('SKU4', 10),
+    ('iPhone-14-Pro', 5);

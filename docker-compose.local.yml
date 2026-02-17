@@ -1,24 +1,15 @@
-version: "3.9"
-
 services:
-  mysql:
-    image: mysql:8.0.32
-    container_name: mysql_inventory
-    restart: always
-    ports:
-      - "3306:3306"
+  postgres-inventory:
+    image: postgres:14.17
+    container_name: postgres-inventory
     environment:
-      MYSQL_ROOT_PASSWORD: ${ROOT_MYSQL_PASS}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASS}
-      MYSQL_DATABASE: inventory_service
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
-      - ./docker/mysql/data:/var/lib/mysql
-    networks:
-      - microservices-net
-
-networks:
-  microservices-net:
-    driver: bridge
-
+        - ./docker/postgresql/init.sql:/docker-entrypoint-initdb.d/init.sql
+        - ./docker/postgresql/data:/var/lib/mysql
+    ports:
+      - "5432:5432"
+volumes:
+  postgres-data:
