@@ -1,6 +1,5 @@
 package com.akul.microservices.inventory;
 
-import com.akul.microservices.inventory.model.Inventory;
 import com.akul.microservices.inventory.repository.InventoryRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

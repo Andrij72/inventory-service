@@ -11,6 +11,8 @@ import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 
@@ -37,6 +39,7 @@ public class InventoryEvent {
     @Column(name = "event_type", nullable = false)
     private String eventType;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "payload", columnDefinition = "jsonb", nullable = false)
     private String payload;
 
@@ -56,7 +59,7 @@ public class InventoryEvent {
         FAILED
     }
 
-    public static InventoryEvent create(String skuCode,String eventType, String payload) {
+    public static InventoryEvent create(String skuCode, String eventType, String payload) {
         InventoryEvent event = new InventoryEvent();
         event.skuCode = skuCode;
         event.eventType = eventType;

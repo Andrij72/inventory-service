@@ -1,0 +1,30 @@
+{
+  "type": "record",
+  "name": "InventoryEvent",
+  "namespace": "com.akul.microservices.inventory.avro",
+  "fields": [
+    {
+      "name": "skuCode",
+      "type": "string"
+    },
+    {
+      "name": "eventType",
+      "type": "string"
+    },
+    {
+      "name": "payload",
+      "type": {
+        "type": "record",
+        "name": "InventoryPayload",
+        "fields": [
+          { "name": "orderId", "type": "string" },
+          { "name": "quantity", "type": "int" }
+        ]
+      }
+    },
+    {
+      "name": "createdAt",
+      "type": "long"
+    }
+  ]
+}

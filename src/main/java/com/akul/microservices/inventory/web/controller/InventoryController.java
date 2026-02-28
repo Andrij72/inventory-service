@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @since 8/27/2025
  */
 @RestController
-@RequestMapping("/api/inventory")
+@RequestMapping("/api/v1/inventory")
 @RequiredArgsConstructor
 public class InventoryController {
 

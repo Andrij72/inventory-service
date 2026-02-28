@@ -13,8 +13,7 @@ import lombok.NoArgsConstructor;
 @Table(name = "inventory")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
-@Builder
+@AllArgsConstructor(access = AccessLevel.PROTECTED)
 public class Inventory {
 
     @Id

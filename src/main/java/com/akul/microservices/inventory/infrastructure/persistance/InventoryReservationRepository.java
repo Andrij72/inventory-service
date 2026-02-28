@@ -17,4 +17,11 @@ public interface InventoryReservationRepository extends JpaRepository<InventoryR
     Optional<InventoryReservation> findByOrderId(String orderId);
 
     boolean existsByOrderId(String orderId);
+
+    Optional<InventoryReservation> findByOrderIdAndSkuCode(
+            String orderId,
+            String skuCode
+    );
+
+
 }

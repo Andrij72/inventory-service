@@ -12,6 +12,7 @@ import com.akul.microservices.inventory.infrastructure.persistance.InventoryEven
 import com.akul.microservices.inventory.infrastructure.persistance.InventoryRepository;
 import com.akul.microservices.inventory.infrastructure.persistance.InventoryReservationRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,28 +36,40 @@ public class InventoryService {
     private final InventoryEventRepository eventRepository;
     private final InventoryEventProducer eventProducer;
 
+    @Value("${inventory.reservation.minutes:10}")
+    private long reservationMinutes;
+
     // ============================
     // Reserve stock (idempotent)
     // ============================
-    public InventoryReservation reserveStock(String orderId, String skuCode, int quantity) {
-        Optional<InventoryReservation> existing = reservationRepository.findByOrderId(orderId);
+    public InventoryReservation reserveStock(
+            String orderId,
+            String skuCode,
+            int quantity
+    ) {
+
+        Optional<InventoryReservation> existing =
+                reservationRepository.findByOrderIdAndSkuCode(orderId, skuCode);
+
         if (existing.isPresent()) {
-            return existing.get(); // idempotency → повертаємо існуючу
+            return existing.get();
         }
 
-        // load inventory
         Inventory inventory = inventoryRepository.findById(skuCode)
                 .orElseThrow(() -> new InventoryNotFoundException(skuCode));
 
-        // reserve quantity
         inventory.reserve(quantity);
-        inventoryRepository.save(inventory);
 
-        // create reservation
-        InventoryReservation reservation = InventoryReservation.create(orderId, skuCode, quantity);
+        InventoryReservation reservation =
+                InventoryReservation.create(
+                        orderId,
+                        skuCode,
+                        quantity,
+                        reservationMinutes
+                );
+
         reservationRepository.save(reservation);
 
-        // create outbox event
         InventoryEvent event = InventoryEvent.create(
                 skuCode,
                 "INVENTORY_RESERVED",
@@ -66,6 +79,7 @@ public class InventoryService {
                         "quantity", quantity
                 ))
         );
+
         eventRepository.save(event);
 
         return reservation;
@@ -92,7 +106,7 @@ public class InventoryService {
         inventory.confirm(reservation.getQuantity());
         inventoryRepository.save(inventory);
 
-        // create event через фабрику
+        // create event
         InventoryEvent event = InventoryEvent.create(
                 reservation.getSkuCode(),
                 "INVENTORY_CONFIRMED",
@@ -100,7 +114,7 @@ public class InventoryService {
         );
         eventRepository.save(event);
 
-        // eventProducer читає Outbox і публікує
+        // eventProducer
         eventProducer.sendEvent(event);
     }
 
@@ -125,7 +139,7 @@ public class InventoryService {
         inventory.release(reservation.getQuantity());
         inventoryRepository.save(inventory);
 
-        // create event через фабрику
+        // create event
         InventoryEvent event = InventoryEvent.create(
                 reservation.getSkuCode(),
                 "INVENTORY_CANCELLED",
@@ -133,7 +147,7 @@ public class InventoryService {
         );
         eventRepository.save(event);
 
-        // eventProducer читає Outbox і публікує
+        // eventProducer
         eventProducer.sendEvent(event);
     }
 

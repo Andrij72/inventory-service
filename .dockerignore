@@ -13,7 +13,7 @@ target/
 .env
 mysql
 
-docker/mysql/data
+docker/postgresql/data
 docker-compose.*.yml
 
 src/main/resources/application.properties

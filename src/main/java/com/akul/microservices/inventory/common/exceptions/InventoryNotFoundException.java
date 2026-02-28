@@ -7,7 +7,7 @@ package com.akul.microservices.inventory.common.exceptions;
  * @since 2/15/2026
  */
 public class InventoryNotFoundException extends RuntimeException {
-    public InventoryNotFoundException(String... orderId,sku) {
-    super("");
+    public InventoryNotFoundException(String skuCode) {
+        super("Inventory not found for SKU: " + skuCode);
     }
 }
