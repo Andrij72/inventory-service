@@ -1,9 +1,13 @@
 package com.akul.microservices.inventory.infrastructure.messaging;
 
 import com.akul.microservices.inventory.domain.model.Inventory;
-import com.akul.microservices.inventory.infrastructure.messaging.events.OrderItemEvent;
-import com.akul.microservices.inventory.infrastructure.messaging.events.OrderPlacedEvent;
+
+import com.akul.microservices.inventory.event.InventoryEvent;
+import com.akul.microservices.inventory.event.InventoryEventType;
+
+
 import com.akul.microservices.inventory.infrastructure.persistance.InventoryRepository;
+import com.akul.microservices.order.event.OrderPlacedEvent;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,40 +15,65 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
-/**
- * InventoryKafkaLisener.java.
- *
- * @author Andrii Kulynych
- * @since 2/23/2026
- */
+import java.time.Instant;
+import java.util.List;
+
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class InventoryKafkaListener {
 
     private final InventoryRepository inventoryRepository;
-    private final KafkaTemplate<String, String> kafkaTemplate;
+    private final KafkaTemplate<String, InventoryEvent> kafkaTemplate;
 
-    @KafkaListener(topics = "order-placed", groupId = "inventory-group")
+    @KafkaListener(
+            topics = "order-created",
+            groupId = "inventory-group",
+            containerFactory = "kafkaListenerContainerFactory"
+    )
     @Transactional
-    public void handleOrderPlaced(OrderPlacedEvent event) {
+    public void handleOrderPlaced(OrderPlacedEvent orderEvent) {
+        log.info("Received OrderPlacedEvent: {}", orderEvent.getOrderNbr());
 
-        for (OrderItemEvent item : event.items()) {
+        List<Inventory> inventories = orderEvent.getItems().stream()
+                .map(item -> inventoryRepository
+                        .findByIdForUpdate(item.getSku())
+                        .orElseThrow(() -> new IllegalStateException(
+                                "Inventory not found for SKU " + item.getSku())))
+                .toList();
 
-            Inventory inventory = inventoryRepository
-                    .findById(item.skuCode())
-                    .orElseThrow();
-
-            if (!inventory.canReserve(item.quantity())) {
-                kafkaTemplate.send("inventory-rejected", event.orderNumber());
-                return;
+        boolean canReserveAll = true;
+        for (int i = 0; i < inventories.size(); i++) {
+            if (!inventories.get(i).canReserve(orderEvent.getItems().get(i).getQuantity())) {
+                canReserveAll = false;
+                break;
             }
-
-            inventory.reserve(item.quantity());
-            inventoryRepository.save(inventory);
         }
 
-        kafkaTemplate.send("inventory-confirmed", event.orderNumber());
+        InventoryEvent event = InventoryEvent.newBuilder()
+                .setEventId(orderEvent.getOrderNbr()) // order´s number as ID
+                .setOrderNbr(orderEvent.getOrderNbr())
+                .setEventType(canReserveAll ?
+                        InventoryEventType.INVENTORY_CONFIRMED :
+                        InventoryEventType.INVENTORY_REJECTED)
+                .setCreatedAt(Instant.now())
+                .build();
+
+        kafkaTemplate.send(
+                canReserveAll ? "inventory-confirmed" : "inventory-rejected",
+                orderEvent.getOrderNbr(),
+                event
+        );
+
+        log.info("Sent {} for order {}",
+                event.getEventType(), orderEvent.getOrderNbr());
+
+        if (canReserveAll) {
+            for (int i = 0; i < inventories.size(); i++) {
+                Inventory inventory = inventories.get(i);
+                inventory.reserve(orderEvent.getItems().get(i).getQuantity());
+                inventoryRepository.save(inventory);
+            }
+        }
     }
 }
-

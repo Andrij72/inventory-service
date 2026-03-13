@@ -96,25 +96,20 @@ public class InventoryService {
             throw new InvalidReservationStateException();
         }
 
-        // mark as confirmed
         reservation.confirm();
         reservationRepository.save(reservation);
 
-        // reduce reservedQuantity in inventory
         Inventory inventory = inventoryRepository.findById(reservation.getSkuCode())
                 .orElseThrow(() -> new InventoryNotFoundException(reservation.getSkuCode()));
         inventory.confirm(reservation.getQuantity());
         inventoryRepository.save(inventory);
 
-        // create event
         InventoryEvent event = InventoryEvent.create(
                 reservation.getSkuCode(),
                 "INVENTORY_CONFIRMED",
                 JsonUtil.toJson(Map.of("orderId", orderId))
         );
         eventRepository.save(event);
-
-        // eventProducer
         eventProducer.sendEvent(event);
     }
 
@@ -129,25 +124,20 @@ public class InventoryService {
             throw new InvalidReservationStateException();
         }
 
-        // mark as cancelled
         reservation.cancel();
         reservationRepository.save(reservation);
 
-        // release inventory
         Inventory inventory = inventoryRepository.findById(reservation.getSkuCode())
                 .orElseThrow(() -> new InventoryNotFoundException(reservation.getSkuCode()));
         inventory.release(reservation.getQuantity());
         inventoryRepository.save(inventory);
 
-        // create event
         InventoryEvent event = InventoryEvent.create(
                 reservation.getSkuCode(),
                 "INVENTORY_CANCELLED",
                 JsonUtil.toJson(Map.of("orderId", orderId))
         );
         eventRepository.save(event);
-
-        // eventProducer
         eventProducer.sendEvent(event);
     }
 

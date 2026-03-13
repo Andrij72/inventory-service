@@ -7,8 +7,6 @@ package com.akul.microservices.inventory.infrastructure.outbox;
  * @since 2/27/2026
  */
 public enum InventoryEventType {
-        RESERVED,
-        CONFIRMED,
-        CANCELLED,
-        EXPIRED
+    INVENTORY_CONFIRMED,
+    INVENTORY_REJECTED
     }

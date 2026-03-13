@@ -12,7 +12,9 @@ CREATE TABLE IF NOT EXISTS inventory_reservation (
                                                      quantity INT NOT NULL,
                                                      status VARCHAR(50) NOT NULL,
                                                      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                                                     expires_at TIMESTAMP,
                                                      updated_at TIMESTAMP,
+                                                     version    BIGINT NOT NULL DEFAULT 0,
 
                                                      CONSTRAINT fk_reservation_inventory
                                                          FOREIGN KEY (sku_code)
