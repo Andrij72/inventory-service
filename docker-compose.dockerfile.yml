@@ -25,7 +25,7 @@ services:
     restart: always
     environment:
       SPRING_PROFILES_ACTIVE: docker
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-inventory:5433/${POSTGRES_DB}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-inventory:5432/${POSTGRES_DB}
       SPRING_DATASOURCE_USERNAME: ${INVENTORY_CLIENT_USER}
       SPRING_DATASOURCE_PASSWORD: ${INVENTORY_CLIENT_PASSWORD}
     depends_on:

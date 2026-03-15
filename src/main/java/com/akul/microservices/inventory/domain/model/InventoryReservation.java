@@ -156,4 +156,8 @@ public class InventoryReservation {
             throw new IllegalStateException("Reservation is expired");
         }
     }
+
+    public boolean isPending() {
+        return this.status == ReservationStatus.PENDING;
+    }
 }

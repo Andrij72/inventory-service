@@ -1,11 +1,10 @@
 package com.akul.microservices.inventory.domain.model;
 
+import com.akul.microservices.inventory.aplication.exception.InvalidQuantityException;
 import com.akul.microservices.inventory.common.exceptions.InsufficientStockException;
-import com.akul.microservices.inventory.common.exceptions.InvalidReservationStateException;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -35,50 +34,48 @@ public class Inventory {
         this.reservedQuantity = 0;
     }
 
-    /** Reserve stock for an order. Throws if not enough available. */
+    /** Reserve stock for an order */
     public void reserve(int quantity) {
-        if (quantity <= 0) {
-            throw new InvalidReservationStateException("Cannot reserve non-positive quantity");
-        }
+        ensurePositive(quantity);
         if (quantity > availableQuantity) {
-            throw new InsufficientStockException(skuCode);
+            throw new InsufficientStockException(skuCode, quantity, availableQuantity);
         }
         availableQuantity -= quantity;
         reservedQuantity += quantity;
     }
 
-    /** Release reserved stock back to available. */
+    /** Release reserved stock back to available */
     public void release(int quantity) {
-        validateQuantity(quantity);
+        ensurePositive(quantity);
         if (quantity > reservedQuantity) {
-            throw new InvalidReservationStateException(
-                    "Cannot release " + quantity + " from reserved " + reservedQuantity
+            throw new InvalidQuantityException(
+                    "Cannot release %d from reserved %d".formatted(quantity, reservedQuantity)
             );
         }
         reservedQuantity -= quantity;
         availableQuantity += quantity;
     }
 
-    /** Confirm reserved stock (reduce reserved). */
+    /** Confirm reserved stock (reduce reserved) */
     public void confirm(int quantity) {
-        validateQuantity(quantity);
+        ensurePositive(quantity);
         if (quantity > reservedQuantity) {
-            throw new InvalidReservationStateException(
-                    "Cannot confirm " + quantity + " from reserved " + reservedQuantity
+            throw new InvalidQuantityException(
+                    "Cannot confirm %d from reserved %d".formatted(quantity, reservedQuantity)
             );
         }
         reservedQuantity -= quantity;
     }
 
-    /** Common validation for quantity */
-    private void validateQuantity(int quantity) {
-        if (quantity <= 0) {
-            throw new InvalidReservationStateException("Quantity must be positive");
-        }
-    }
-
-    /** Check if enough stock is available for reservation */
+    /** Check if enough stock is available */
     public boolean canReserve(int quantity) {
         return quantity > 0 && quantity <= availableQuantity;
+    }
+
+    /** Validate positive quantity */
+    private void ensurePositive(int quantity) {
+        if (quantity <= 0) {
+            throw new InvalidQuantityException("Quantity must be positive");
+        }
     }
 }

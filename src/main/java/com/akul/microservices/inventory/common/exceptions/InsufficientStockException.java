@@ -8,8 +8,11 @@ package com.akul.microservices.inventory.common.exceptions;
  */
 public class InsufficientStockException extends RuntimeException {
 
-    public InsufficientStockException(final String sku) {
-        super("Inventory item with SKU '%s' not found!".formatted(sku));
+    public InsufficientStockException(final String skuCode,
+                                      int quantity,
+                                      int availableQuantity) {
+        super("Insufficient stock for '%s' requested='%d' available='%d'"
+                .formatted(skuCode, quantity, availableQuantity));
     }
 }
 

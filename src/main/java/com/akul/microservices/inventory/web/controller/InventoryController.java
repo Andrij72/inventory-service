@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 /**
  * InventoryController.java
  *
@@ -32,21 +34,9 @@ public class InventoryController {
     // Reserve stock
     // ============================
     @PostMapping("/reserve")
-    public ResponseEntity<ReserveInventoryResponse> reserve(@RequestBody ReserveInventoryRequest request) {
-        InventoryReservation reservation = inventoryService.reserveStock(
-                request.getOrderId(),
-                request.getSkuCode(),
-                request.getQuantity()
-        );
-
-        ReserveInventoryResponse response = ReserveInventoryResponse.builder()
-                .orderId(reservation.getOrderId())
-                .skuCode(reservation.getSkuCode())
-                .quantity(reservation.getQuantity())
-                .status(reservation.getStatus().name())
-                .build();
-
-        return ResponseEntity.ok(response);
+    public ResponseEntity<List<ReserveInventoryResponse>> reserve(@RequestBody ReserveInventoryRequest request) {
+        List<ReserveInventoryResponse> responses = inventoryService.reserveOrder(request);
+        return ResponseEntity.ok(responses);
     }
 
     // ============================

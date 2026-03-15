@@ -1,7 +1,12 @@
 package com.akul.microservices.inventory.aplication.service;
 
-
-import com.akul.microservices.inventory.common.exceptions.InvalidReservationStateException;
+import com.akul.microservices.inventory.aplication.dto.OrderItemDto;
+import com.akul.microservices.inventory.aplication.dto.ReserveInventoryRequest;
+import com.akul.microservices.inventory.aplication.dto.ReserveInventoryResponse;
+import com.akul.microservices.inventory.aplication.exception.InvalidReservationStateException;
+import com.akul.microservices.inventory.aplication.exception.ReservationNotFoundException;
+import com.akul.microservices.inventory.aplication.mapper.InventoryMapper;
+import com.akul.microservices.inventory.common.exceptions.InsufficientStockException;
 import com.akul.microservices.inventory.common.exceptions.InventoryNotFoundException;
 import com.akul.microservices.inventory.common.util.JsonUtil;
 import com.akul.microservices.inventory.domain.model.Inventory;
@@ -12,20 +17,30 @@ import com.akul.microservices.inventory.infrastructure.persistance.InventoryEven
 import com.akul.microservices.inventory.infrastructure.persistance.InventoryRepository;
 import com.akul.microservices.inventory.infrastructure.persistance.InventoryReservationRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 
 /**
- * InventoryService.java.
+ * Inventory service responsible for stock reservation lifecycle.
  *
- * @author Andrii Kulynych
- * @since 2/15/2026
+ * Supports:
+ * - stock reservation
+ * - reservation confirmation
+ * - reservation cancellation
+ * - automatic TTL expiration
+ *
+ * Publishes domain events used in Saga-based order processing.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -39,115 +54,172 @@ public class InventoryService {
     @Value("${inventory.reservation.minutes:10}")
     private long reservationMinutes;
 
-    // ============================
-    // Reserve stock (idempotent)
-    // ============================
-    public InventoryReservation reserveStock(
-            String orderId,
-            String skuCode,
-            int quantity
-    ) {
+    public List<ReserveInventoryResponse> reserveOrder(ReserveInventoryRequest request) {
 
-        Optional<InventoryReservation> existing =
-                reservationRepository.findByOrderIdAndSkuCode(orderId, skuCode);
+        List<ReserveInventoryResponse> responses = new ArrayList<>();
 
-        if (existing.isPresent()) {
-            return existing.get();
+        for (OrderItemDto item : request.getItems()) {
+
+            var existing = reservationRepository
+                    .findByOrderIdAndSkuCode(request.getOrderId(), item.getSkuCode());
+
+            if (existing.isPresent()) {
+                responses.add(InventoryMapper.toDto(existing.get()));
+                continue;
+            }
+
+            Inventory inventory = inventoryRepository.findById(item.getSkuCode())
+                    .orElseThrow(() -> new InventoryNotFoundException(item.getSkuCode()));
+
+            if (!inventory.canReserve(item.getQuantity())) {
+                throw new InsufficientStockException(
+                        item.getSkuCode(),
+                        item.getQuantity(),
+                        inventory.getAvailableQuantity()
+                );
+            }
+
+            inventory.reserve(item.getQuantity());
+            inventoryRepository.save(inventory);
+
+            InventoryReservation reservation = InventoryReservation.create(
+                    request.getOrderId(),
+                    item.getSkuCode(),
+                    item.getQuantity(),
+                    reservationMinutes
+            );
+
+            reservationRepository.save(reservation);
+
+            publishEvent(
+                    item.getSkuCode(),
+                    "INVENTORY_RESERVED",
+                    Map.of(
+                            "orderId", request.getOrderId(),
+                            "skuCode", item.getSkuCode(),
+                            "quantity", item.getQuantity()
+                    )
+            );
+
+            responses.add(InventoryMapper.toDto(reservation));
         }
+
+        return responses;
+    }
+
+    public void confirmReservation(String orderId) {
+
+        var reservations = reservationRepository.findByOrderId(orderId);
+
+        if (reservations.isEmpty()) {
+            throw new ReservationNotFoundException(orderId);
+        }
+
+        for (InventoryReservation reservation : reservations) {
+
+            if (!reservation.isPending()) {
+                throw new InvalidReservationStateException(orderId);
+            }
+
+            reservation.confirm();
+            reservationRepository.save(reservation);
+
+            Inventory inventory = inventoryRepository.findById(reservation.getSkuCode())
+                    .orElseThrow(() -> new InventoryNotFoundException(reservation.getSkuCode()));
+
+            inventory.confirm(reservation.getQuantity());
+            inventoryRepository.save(inventory);
+
+            publishEvent(
+                    reservation.getSkuCode(),
+                    "INVENTORY_CONFIRMED",
+                    Map.of("orderId", orderId)
+            );
+        }
+    }
+
+    public void cancelReservation(String orderId) {
+
+        var reservations = reservationRepository.findByOrderId(orderId);
+
+        if (reservations.isEmpty()) {
+            throw new ReservationNotFoundException(orderId);
+        }
+
+        for (InventoryReservation reservation : reservations) {
+
+            if (!reservation.isPending()) {
+                throw new InvalidReservationStateException(orderId);
+            }
+
+            reservation.cancel();
+            reservationRepository.save(reservation);
+
+            Inventory inventory = inventoryRepository.findById(reservation.getSkuCode())
+                    .orElseThrow(() -> new InventoryNotFoundException(reservation.getSkuCode()));
+
+            inventory.release(reservation.getQuantity());
+            inventoryRepository.save(inventory);
+
+            publishEvent(
+                    reservation.getSkuCode(),
+                    "INVENTORY_CANCELLED",
+                    Map.of("orderId", orderId)
+            );
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isProductInStock(String skuCode, int quantity) {
 
         Inventory inventory = inventoryRepository.findById(skuCode)
                 .orElseThrow(() -> new InventoryNotFoundException(skuCode));
 
-        inventory.reserve(quantity);
+        return inventory.getAvailableQuantity() >= quantity;
+    }
 
-        InventoryReservation reservation =
-                InventoryReservation.create(
-                        orderId,
-                        skuCode,
-                        quantity,
-                        reservationMinutes
+    @Scheduled(fixedRateString = "${inventory.ttl.check.millis:60000}")
+    @Transactional
+    public void releaseExpiredReservations() {
+
+        var expiredReservations = reservationRepository
+                .findByStatusAndExpiresAtBefore(
+                        InventoryReservation.ReservationStatus.PENDING,
+                        Instant.now()
                 );
 
-        reservationRepository.save(reservation);
+        for (InventoryReservation reservation : expiredReservations) {
+
+            reservation.expire();
+            reservationRepository.save(reservation);
+
+            Inventory inventory = inventoryRepository.findById(reservation.getSkuCode())
+                    .orElseThrow(() -> new InventoryNotFoundException(reservation.getSkuCode()));
+
+            inventory.release(reservation.getQuantity());
+            inventoryRepository.save(inventory);
+
+            publishEvent(
+                    reservation.getSkuCode(),
+                    "INVENTORY_EXPIRED",
+                    Map.of(
+                            "orderId", reservation.getOrderId(),
+                            "skuCode", reservation.getSkuCode(),
+                            "quantity", reservation.getQuantity()
+                    )
+            );
+        }
+    }
+
+    private void publishEvent(String skuCode, String type, Map<String, Object> payload) {
 
         InventoryEvent event = InventoryEvent.create(
                 skuCode,
-                "INVENTORY_RESERVED",
-                JsonUtil.toJson(Map.of(
-                        "orderId", orderId,
-                        "skuCode", skuCode,
-                        "quantity", quantity
-                ))
+                type,
+                JsonUtil.toJson(payload)
         );
 
-        eventRepository.save(event);
-
-        return reservation;
-    }
-
-    // ============================
-    // Confirm reservation (Saga)
-    // ============================
-    public void confirmReservation(String orderId) {
-        InventoryReservation reservation = reservationRepository.findByOrderId(orderId)
-                .orElseThrow(() -> new RuntimeException("Reservation not found"));
-
-        if (reservation.getStatus() != InventoryReservation.ReservationStatus.PENDING) {
-            throw new InvalidReservationStateException();
-        }
-
-        reservation.confirm();
-        reservationRepository.save(reservation);
-
-        Inventory inventory = inventoryRepository.findById(reservation.getSkuCode())
-                .orElseThrow(() -> new InventoryNotFoundException(reservation.getSkuCode()));
-        inventory.confirm(reservation.getQuantity());
-        inventoryRepository.save(inventory);
-
-        InventoryEvent event = InventoryEvent.create(
-                reservation.getSkuCode(),
-                "INVENTORY_CONFIRMED",
-                JsonUtil.toJson(Map.of("orderId", orderId))
-        );
         eventRepository.save(event);
         eventProducer.sendEvent(event);
-    }
-
-    // ============================
-    // Cancel reservation (Saga compensation)
-    // ============================
-    public void cancelReservation(String orderId) {
-        InventoryReservation reservation = reservationRepository.findByOrderId(orderId)
-                .orElseThrow(() -> new RuntimeException("Reservation not found"));
-
-        if (reservation.getStatus() != InventoryReservation.ReservationStatus.PENDING) {
-            throw new InvalidReservationStateException();
-        }
-
-        reservation.cancel();
-        reservationRepository.save(reservation);
-
-        Inventory inventory = inventoryRepository.findById(reservation.getSkuCode())
-                .orElseThrow(() -> new InventoryNotFoundException(reservation.getSkuCode()));
-        inventory.release(reservation.getQuantity());
-        inventoryRepository.save(inventory);
-
-        InventoryEvent event = InventoryEvent.create(
-                reservation.getSkuCode(),
-                "INVENTORY_CANCELLED",
-                JsonUtil.toJson(Map.of("orderId", orderId))
-        );
-        eventRepository.save(event);
-        eventProducer.sendEvent(event);
-    }
-
-    // ============================
-    // Check stock availability
-    // ============================
-    @Transactional(readOnly = true)
-    public boolean isProductInStock(String skuCode, int quantity) {
-        Inventory inventory = inventoryRepository.findById(skuCode)
-                .orElseThrow(() -> new InventoryNotFoundException(skuCode));
-        return inventory.getAvailableQuantity() >= quantity;
     }
 }
