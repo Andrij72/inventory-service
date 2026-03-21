@@ -1,5 +1,6 @@
 package com.akul.microservices.inventory.infrastructure.outbox;
 
+import com.akul.microservices.inventory.domain.model.InventoryEvent;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -14,6 +15,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 
+import java.io.IOException;
 import java.time.Instant;
 
 /**
@@ -28,112 +30,97 @@ import java.time.Instant;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class InventoryOutbox {
 
-        private static final int MAX_RETRY = 5;
+    private static final int MAX_RETRY = 5;
 
-        @Id
-        @GeneratedValue(strategy = GenerationType.IDENTITY)
-        private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-        private String skuCode;
+    private String aggregateId; // orderId
+    private String skuCode;
 
-        @Enumerated(EnumType.STRING)
-        private InventoryEventType eventType;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private InventoryEventType eventType;
 
-        @Column(columnDefinition = "jsonb")
-        private String payload;
+    @Column(columnDefinition = "bytea")
+    private byte[] payload;
 
-        @Enumerated(EnumType.STRING)
-        private Status status;
+    @Enumerated(EnumType.STRING)
+    private Status status;
 
-        private int retryCount;
+    private int retryCount;
+    private Instant createdAt;
+    private Instant processedAt;
+    private Instant nextRetryAt;
 
-        private Instant createdAt;
+    @Version
+    private Long version;
 
-        private Instant processedAt;
+    private InventoryOutbox(String aggregateId, String skuCode,
+                            InventoryEventType eventType, byte[] payload) {
 
-        private Instant nextRetryAt;
+        this.aggregateId = aggregateId;
+        this.skuCode = skuCode;
+        this.eventType = eventType;
+        this.payload = payload;
 
-        @Version
-        private Long version;
-
-        private InventoryOutbox(String skuCode,
-                                InventoryEventType eventType,
-                                String payload) {
-
-            this.skuCode = skuCode;
-            this.eventType = eventType;
-            this.payload = payload;
-
-            this.status = Status.PENDING;
-            this.retryCount = 0;
-            this.createdAt = Instant.now();
-            this.nextRetryAt = Instant.now();
-        }
-
-        public static InventoryOutbox create(String skuCode,
-                                             InventoryEventType eventType,
-                                             String payload) {
-            return new InventoryOutbox(skuCode, eventType, payload);
-        }
-
-        // =========================
-        // State transitions
-        // =========================
-
-        public void markProcessing() {
-            validatePersisted();
-            validateMutable();
-            this.status = Status.PROCESSING;
-        }
-
-        public void markProcessed() {
-            validatePersisted();
-            validateMutable();
-            this.status = Status.PROCESSED;
-            this.processedAt = Instant.now();
-        }
-
-        public void markFailed() {
-            validatePersisted();
-            validateMutable();
-
-            this.retryCount++;
-
-            if (retryCount >= MAX_RETRY) {
-                this.status = Status.FAILED;
-                return;
-            }
-
-            this.status = Status.PENDING;
-
-            long backoff = Math.min(
-                    30L * (1L << retryCount),
-                    300
-            );
-
-            this.nextRetryAt = Instant.now().plusSeconds(backoff);
-        }
-
-        // =========================
-        // Validation
-        // =========================
-
-        private void validatePersisted() {
-            if (id == null) {
-                throw new IllegalStateException("Entity is not persisted yet");
-            }
-        }
-
-        private void validateMutable() {
-            if (status == Status.PROCESSED || status == Status.FAILED) {
-                throw new IllegalStateException("Terminal state reached");
-            }
-        }
-
-        public enum Status {
-            PENDING,
-            PROCESSING,
-            PROCESSED,
-            FAILED
-        }
+        this.status = Status.PENDING;
+        this.retryCount = 0;
+        this.createdAt = Instant.now();
+        this.nextRetryAt = Instant.now();
     }
+
+    public static InventoryOutbox create(String aggregateId, String skuCode,
+                                         InventoryEventType eventType, byte[] payload) {
+        return new InventoryOutbox(aggregateId, skuCode, eventType, payload);
+    }
+
+    // =========================
+    // State transitions
+    // =========================
+    public void markProcessing() {
+        validatePersisted();
+        validateMutable();
+        this.status = Status.PROCESSING;
+    }
+
+    public void markProcessed() {
+        validatePersisted();
+        validateMutable();
+        this.status = Status.PROCESSED;
+        this.processedAt = Instant.now();
+    }
+
+    public void markFailed() {
+        validatePersisted();
+        validateMutable();
+        this.retryCount++;
+        if (retryCount >= MAX_RETRY) {
+            this.status = Status.FAILED;
+            return;
+        }
+        this.status = Status.PENDING;
+        long backoff = Math.min(30L * (1L << retryCount), 300);
+        this.nextRetryAt = Instant.now().plusSeconds(backoff);
+    }
+
+    public boolean isProcessed() {
+        return InventoryEvent.EventStatus.PROCESSED.equals(this.status);
+    }
+    private void validatePersisted() {
+        if (id == null) throw new IllegalStateException("Entity is not persisted yet");
+    }
+
+    private void validateMutable() {
+        if (status == Status.PROCESSED || status == Status.FAILED)
+            throw new IllegalStateException("Terminal state reached");
+    }
+
+    public enum Status {
+        PENDING,
+        PROCESSING,
+        PROCESSED,
+        FAILED
+    }
+}

@@ -1,5 +1,6 @@
 CREATE TABLE IF NOT EXISTS inventory (
                                          sku_code VARCHAR(255) PRIMARY KEY,
+                                         name VARCHAR(255) NOT NULL,
                                          available_quantity INT NOT NULL DEFAULT 0,
                                          reserved_quantity INT NOT NULL DEFAULT 0,
                                          version BIGINT NOT NULL DEFAULT 0

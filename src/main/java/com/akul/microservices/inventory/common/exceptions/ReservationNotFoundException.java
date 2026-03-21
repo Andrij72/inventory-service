@@ -1,4 +1,4 @@
-package com.akul.microservices.inventory.aplication.exception;
+package com.akul.microservices.inventory.common.exceptions;
 
 /**
  * ReservationNotFoundException.java.

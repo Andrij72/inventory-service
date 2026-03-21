@@ -7,18 +7,18 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * OrderItemDto.java.
+ * InventoryItemDto.java.
  *
  * @author Andrii Kulynych
- * @since 3/14/2026
+ * @since 3/16/2026
  */
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class OrderItemDto {
+public class InventoryItemDto {
     private String skuCode;
     private String name;
-    private int quantity;
+    private int availableQuantity;
 }

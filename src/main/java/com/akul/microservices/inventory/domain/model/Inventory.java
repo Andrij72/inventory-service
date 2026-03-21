@@ -1,6 +1,6 @@
 package com.akul.microservices.inventory.domain.model;
 
-import com.akul.microservices.inventory.aplication.exception.InvalidQuantityException;
+import com.akul.microservices.inventory.common.exceptions.InvalidQuantityException;
 import com.akul.microservices.inventory.common.exceptions.InsufficientStockException;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -19,6 +19,9 @@ public class Inventory {
     @Column(name = "sku_code")
     private String skuCode;
 
+    @Column(name = "name", nullable = false)
+    private String name;
+
     @Column(name = "available_quantity", nullable = false)
     private int availableQuantity;
 
@@ -28,10 +31,31 @@ public class Inventory {
     @Version
     private long version;
 
-    public Inventory(String skuCode, int initialQuantity) {
+    protected Inventory(String skuCode, String name, int initialQuantity) {
         this.skuCode = skuCode;
+        this.name = name;
         this.availableQuantity = initialQuantity;
         this.reservedQuantity = 0;
+    }
+
+    public static Inventory createNew(String skuCode, String name, int initialQuantity) {
+        return new Inventory(skuCode, name, initialQuantity);
+    }
+
+    public void updateName(String newName) {
+        if (newName == null || newName.isBlank()) {
+            throw new IllegalArgumentException("Name cannot be empty");
+        }
+        this.name = newName;
+    }
+
+    public void updateStock(int newQuantity) {
+        if (newQuantity < reservedQuantity) {
+            throw new InvalidQuantityException(
+                    "Cannot set availableQuantity less than reservedQuantity"
+            );
+        }
+        this.availableQuantity = newQuantity;
     }
 
     /** Reserve stock for an order */

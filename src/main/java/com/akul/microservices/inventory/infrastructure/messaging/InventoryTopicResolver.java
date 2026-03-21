@@ -16,7 +16,9 @@ public class InventoryTopicResolver {
 
         return switch (eventType) {
             case INVENTORY_CONFIRMED -> "inventory-confirmed";
+            case INVENTORY_EXPIRED -> "inventory-expired";
             case INVENTORY_REJECTED -> "inventory-rejected";
+            case INVENTORY_CANCELLED -> "inventory-cancelled";
         };
     }
 }

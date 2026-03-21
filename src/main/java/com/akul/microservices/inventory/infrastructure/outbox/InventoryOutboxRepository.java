@@ -26,4 +26,6 @@ public interface InventoryOutboxRepository extends JpaRepository<InventoryOutbox
             LIMIT :limit
             """, nativeQuery = true)
     List<InventoryOutbox> findBatchForProcessing(@Param("limit") int limit);
+
+    boolean existsByAggregateIdAndSkuCodeAndEventType(String aggregateId, String sku, InventoryEventType inventoryEventType);
 }
