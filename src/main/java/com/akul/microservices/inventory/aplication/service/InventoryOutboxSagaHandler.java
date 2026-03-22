@@ -14,6 +14,7 @@ import com.akul.microservices.order.event.OrderItem;
 import com.akul.microservices.order.event.OrderPlacedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +32,9 @@ public class InventoryOutboxSagaHandler {
     private final InventoryOutboxRepository outboxRepository;
     private final InventoryReservationRepository reservationRepository;
     private final InventoryRepository inventoryRepository;
+
+    @Value("${inventory.reservation.minutes:5}")
+    private long reservationMinutes;
 
     // =========================
     // TTL CLEANUP
@@ -131,6 +135,14 @@ public class InventoryOutboxSagaHandler {
 
             inventory.reserve(item.getQuantity());
             inventoryRepository.save(inventory);
+
+            InventoryReservation reservation = InventoryReservation.create(
+                    orderEvent.getOrderNbr(),
+                    item.getSku(),
+                    item.getQuantity(),
+                    reservationMinutes
+            );
+            reservationRepository.save(reservation);
 
             publishEvent(
                     orderEvent.getOrderNbr(),
