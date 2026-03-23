@@ -8,8 +8,8 @@ import com.akul.microservices.inventory.infrastructure.mapper.InventoryEventType
 import com.akul.microservices.inventory.infrastructure.outbox.InventoryEventType;
 import com.akul.microservices.inventory.infrastructure.outbox.InventoryOutbox;
 import com.akul.microservices.inventory.infrastructure.outbox.InventoryOutboxRepository;
-import com.akul.microservices.inventory.infrastructure.persistance.InventoryRepository;
-import com.akul.microservices.inventory.infrastructure.persistance.InventoryReservationRepository;
+import com.akul.microservices.inventory.infrastructure.persistence.InventoryRepository;
+import com.akul.microservices.inventory.infrastructure.persistence.InventoryReservationRepository;
 import com.akul.microservices.order.event.OrderItem;
 import com.akul.microservices.order.event.OrderPlacedEvent;
 import lombok.RequiredArgsConstructor;

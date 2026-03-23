@@ -3,12 +3,11 @@ package com.akul.microservices.inventory.aplication.service;
 import com.akul.microservices.inventory.aplication.dto.InventoryItemDto;
 import com.akul.microservices.inventory.common.exceptions.InventoryNotFoundException;
 import com.akul.microservices.inventory.domain.model.Inventory;
-import com.akul.microservices.inventory.infrastructure.persistance.InventoryRepository;
+import com.akul.microservices.inventory.infrastructure.persistence.InventoryRepository;
 import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;

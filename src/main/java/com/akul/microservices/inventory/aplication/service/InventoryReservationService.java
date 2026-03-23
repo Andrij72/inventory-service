@@ -9,8 +9,8 @@ import com.akul.microservices.inventory.common.exceptions.InventoryNotFoundExcep
 import com.akul.microservices.inventory.common.exceptions.ReservationNotFoundException;
 import com.akul.microservices.inventory.domain.model.Inventory;
 import com.akul.microservices.inventory.domain.model.InventoryReservation;
-import com.akul.microservices.inventory.infrastructure.persistance.InventoryRepository;
-import com.akul.microservices.inventory.infrastructure.persistance.InventoryReservationRepository;
+import com.akul.microservices.inventory.infrastructure.persistence.InventoryRepository;
+import com.akul.microservices.inventory.infrastructure.persistence.InventoryReservationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;

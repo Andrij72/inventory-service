@@ -1,5 +1,5 @@
 
-package com.akul.microservices.inventory.infrastructure.persistance;
+package com.akul.microservices.inventory.infrastructure.persistence;
 
 
 import com.akul.microservices.inventory.domain.model.InventoryEvent;

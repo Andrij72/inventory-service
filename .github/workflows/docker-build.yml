@@ -80,6 +80,10 @@ jobs:
       - name: Extract short SHA
         run: echo "SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_ENV
 
+      - name: Build and install schema registry library
+        working-directory: ./microservices-schema-registry
+        run: mvn clean install -DskipTests
+
       - name: Build & Push Docker image (dev)
         uses: docker/build-push-action@v4
         with:
