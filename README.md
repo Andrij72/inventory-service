@@ -157,7 +157,7 @@ Content-Type: application/json
 ### ⏳ TTL Expiration Flow
 
 
-```textmate
+```text
      Scheduler
           │
           ├── find expired reservations
@@ -169,7 +169,7 @@ Kafka → Order Service
                 
 ```
 ---
-## 🧠 Key Concepts
+## 🧠 Key Design Decisions
 
 * TTL reservations prevent stock locking
 * Idempotent operations via unique (order_id, sku_code)
@@ -177,6 +177,27 @@ Kafka → Order Service
 * Multi-SKU orders are processed independently
 ---
 
+### 🧠 Flow Explanation
+
+This flow represents the interaction between Order and Inventory services using the **Saga + Outbox pattern**.
+
+- Order Service publishes `OrderPlacedEvent`
+- Inventory Service reserves stock and stores the result in the **Outbox**
+- Outbox Worker guarantees reliable delivery to Kafka
+- Order Service reacts to `CONFIRMED` or `REJECTED` events and updates order status
+
+### ⏳ TTL Behavior
+
+Inventory reservations are time-limited:
+
+- If not confirmed in time, they expire automatically
+- Scheduler releases reserved stock
+- `INVENTORY_EXPIRED` event is published
+- Order Service marks the order as **FAILED**
+
+This prevents stock from being locked indefinitely and ensures system consistency.
+
+---
 ## 🧪 Tests
 
 Integration tests using Testcontainers covering:
@@ -222,6 +243,26 @@ Import the Postman collection from the project root:
 * vX.X.X → release image
 
 ---
+## 📦 Why Outbox Pattern?
+
+The Outbox pattern is used to guarantee reliable event publishing:
+
+- Prevents message loss between DB transaction and Kafka publish
+- Ensures events are stored before being sent
+- Enables retry via Outbox Worker
+- Provides eventual consistency without distributed transactions
+---
+
+## ⚠️ Failure Handling
+
+- If inventory is insufficient → `INVENTORY_REJECTED`
+- If reservation expires → `INVENTORY_EXPIRED`
+- Order Service reacts and marks order as **FAILED**
+
+No direct rollback calls are used — only events.
+
+---
+
 ## 👨‍💻 Author
 
 _Andrij72_ — Microservices, Kafka, Saga, Outbox, Avro, Spring Boot
