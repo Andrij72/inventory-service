@@ -1,0 +1,3 @@
+[submodule "microservices-schema-registry"]
+	path = microservices-schema-registry
+	url = https://github.com/Andrij72/microservices-schema-registry.git
