@@ -1,10 +1,9 @@
-FROM eclipse-temurin:21-jdk AS builder
+FROM eclipse-temurin:21-jdk-noble
+
 WORKDIR /app
 
-COPY pom.xml mvnw ./
-COPY .mvn .mvn
-COPY src src
+COPY target/inventory-service-0.0.1-SNAPSHOT.jar app.jar
 
-COPY .github/maven-settings.xml /root/.m2/settings.xml
+EXPOSE 8082
 
-RUN mvn clean package -DskipTests
+ENTRYPOINT ["java","-jar","/app/app.jar","--spring.profiles.active=docker"]

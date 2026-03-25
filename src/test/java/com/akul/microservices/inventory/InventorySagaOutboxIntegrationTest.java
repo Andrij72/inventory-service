@@ -58,6 +58,7 @@ class InventorySagaOutboxIntegrationTest {
 
     @Container
     static KafkaContainer kafka = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.6.1"));
+
     @Autowired
     private InventoryReservationRepository inventoryReservationRepository;
 

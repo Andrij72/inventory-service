@@ -98,27 +98,45 @@ jobs:
           docker push ${{ env.DOCKER_IMAGE }}:dev-${{ env.SHORT_SHA }}
 
       # --- Run Inventory Service container for API tests
-      - name: Run Inventory Service container
+      - name: Run containers
         run: |
-          docker run -d --name inventory-service \
-            -p 8082:8082 \
-            -e SPRING_PROFILES_ACTIVE=docker \
-            -e SPRING_DATASOURCE_URL=jdbc:postgresql://host.docker.internal:5432/inventory_service \
-            -e SPRING_DATASOURCE_USERNAME=postgres \
-            -e SPRING_DATASOURCE_PASSWORD=postgres \
-            -e SPRING_JPA_DATABASE_PLATFORM=org.hibernate.dialect.PostgreSQLDialect \
-            ${{ env.DOCKER_IMAGE }}:dev-latest
+          docker network create test-network
 
-      # --- Wait for service to be ready
-      - name: Wait for service to be ready
+          docker run -d --name postgres \
+          --network test-network \
+          -e POSTGRES_DB=inventory_service \
+          -e POSTGRES_USER=postgres \
+          -e POSTGRES_PASSWORD=postgres \
+          postgres:14
+
+          echo "Waiting for postgres..."
+          sleep 10
+
+          docker run -d --name inventory-service \
+          --network test-network \
+          -p 8082:8082 \
+          -e SPRING_PROFILES_ACTIVE=docker \
+          -e SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/inventory_service \
+          -e SPRING_DATASOURCE_USERNAME=postgres \
+          -e SPRING_DATASOURCE_PASSWORD=postgres \
+          ${{ env.DOCKER_IMAGE }}:dev-latest
+
+      - name: Wait for service
         run: |
           for i in {1..30}; do
-            curl -s http://localhost:8082/actuator/health | grep UP && break
-            echo "Waiting for service..."
+            if curl -s http://localhost:8082/actuator/health | grep UP; then
+              echo "Service is UP"
+              exit 0
+            fi
+            echo "Waiting..."
+            docker logs inventory-service | tail -20
             sleep 5
           done
+          echo "Service failed"
+          docker logs inventory-service
+          exit 1  
 
-      # --- Run basic API test
-      - name: Run API tests
+      - name: API test
         run: |
-          curl -f "http://localhost:8082/api/v1/inventory?sku=iphone_15&quantity=3"
+          curl -f "http://localhost:8082/api/v1/admin/inventory"        
+          
