@@ -1,6 +1,5 @@
 package com.akul.microservices.inventory.infrastructure.outbox;
 
-import com.akul.microservices.inventory.domain.model.InventoryEvent;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -14,8 +13,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-
-import java.io.IOException;
 import java.time.Instant;
 
 /**
@@ -105,9 +102,6 @@ public class InventoryOutbox {
         this.nextRetryAt = Instant.now().plusSeconds(backoff);
     }
 
-    public boolean isProcessed() {
-        return InventoryEvent.EventStatus.PROCESSED.equals(this.status);
-    }
     private void validatePersisted() {
         if (id == null) throw new IllegalStateException("Entity is not persisted yet");
     }
