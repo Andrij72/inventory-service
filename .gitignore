@@ -1,6 +1,6 @@
 HELP.md
 target/
-.mvn/wrapper/maven-wrapper.jar
+
 !**/src/main/**/target/
 !**/src/test/**/target/
 
@@ -32,7 +32,7 @@ build/
 .env
 mysql
 
-docker/mysql/data
+docker/postgresql/data
 docker-compose.*.yml
 
 

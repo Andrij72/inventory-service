@@ -1,0 +1,175 @@
+{
+  "info": {
+    "_postman_id": "c5dfdae9-1d53-4d67-bab8-a1abeadb9a4c",
+    "name": "MicroServiceGrid_AdminInventoryCollection",
+    "description": "ExampleCRUD to check stock for AdminInventoryController",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "7173855"
+  },
+  "item": [
+    {
+      "name": "Create Inventory Item",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"skuCode\": \"S25-ULTRA\",\n  \"name\": \"Samsung Galaxy S25 Ultra\",\n  \"availableQuantity\": 1\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8082/api/v1/admin/inventory",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8082",
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "inventory"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get All Inventory Items",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8082/api/v1/admin/inventory",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8082",
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "inventory"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Inventory Item by SKU",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8082/api/v1/admin/inventory/S24-ULTRA",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8082",
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "inventory",
+            "S24-ULTRA"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Update Inventory Item",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"skuCode\": \"S24-ULTRA\",\n  \"name\": \"Samsung Galaxy S24 Ultra\",\n  \"availableQuantity\": 20\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8082/api/v1/admin/inventory/S24-ULTRA",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8082",
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "inventory",
+            "S24-ULTRA"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Delete Inventory Item",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/api/v1/admin/inventory/S24-ULTRA",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "inventory",
+            "S24-ULTRA"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Check Stock Availability",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8082/api/v1/admin/inventory/check?skuCode=S24-ULTRA&quantity=50",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8082",
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "inventory",
+            "check"
+          ],
+          "query": [
+            {
+              "key": "skuCode",
+              "value": "S24-ULTRA"
+            },
+            {
+              "key": "quantity",
+              "value": "50"
+            }
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}

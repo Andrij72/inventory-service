@@ -13,183 +13,130 @@ on:
 
 env:
   DOCKER_IMAGE: ${{ secrets.DOCKER_HUB_USERNAME }}/inventory-service
+  SPRING_PROFILES_ACTIVE: test
+
+permissions:
+  contents: read
+  packages: read
 
 jobs:
-  # ---------------------------
-  # Unit & Integration Tests
-  # ---------------------------
-  test:
+  build-test-docker:
     runs-on: ubuntu-latest
+
     services:
-      mysql:
-        image: mysql:8.0.32
+      postgres:
+        image: postgres:14
         ports:
-          - 3306:3306
+          - 5432:5432
         env:
-          MYSQL_ROOT_PASSWORD: ${{ secrets.ROOT_MYSQL_PASS }}
-          MYSQL_USER: ${{ secrets.MYSQL_USER }}
-          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASS }}
-          MYSQL_DATABASE: inventory_service
+          POSTGRES_DB: inventory_service
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
         options: >-
-          --health-cmd="mysqladmin ping -h localhost -uroot -p"
+          --health-cmd="pg_isready -U postgres"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
 
     steps:
+      # --- Checkout code
       - uses: actions/checkout@v3
-      - name: Set up JDK
+
+      # --- Setup JDK 21 + Maven cache
+      - name: Set up JDK 21
         uses: actions/setup-java@v3
         with:
           java-version: '21'
           distribution: 'temurin'
-      - name: Run unit + integration tests
-        env:
-          SPRING_DATASOURCE_URL: jdbc:mysql://localhost:3306/inventory_service?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-          SPRING_DATASOURCE_USERNAME: ${{ secrets.MYSQL_USER }}
-          SPRING_DATASOURCE_PASSWORD: ${{ secrets.MYSQL_PASS }}
-        run: mvn clean verify
-      - name: Build jar (skip tests)
-        run: mvn clean package -DskipTests
+          cache: maven
 
-  # ---------------------------
-  # Docker Build & Push (Develop)
-  # ---------------------------
-  docker-develop:
-    runs-on: ubuntu-latest
-    needs: test
-    steps:
-      - uses: actions/checkout@v3
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKER_HUB_USERNAME }}
-          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
-      - name: Extract short SHA
-        run: echo "SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_ENV
-      - name: Build & Push Docker image (dev)
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          file: Dockerfile
-          push: true
-          tags: |
-            ${{ env.DOCKER_IMAGE }}:dev-latest
-            ${{ env.DOCKER_IMAGE }}:dev-${{ env.SHORT_SHA }}
-
-  # ---------------------------
-  # Docker Build & Push (Main)
-  # ---------------------------
-  docker-main:
-    runs-on: ubuntu-latest
-    needs: test
-    if: github.ref == 'refs/heads/main'
-    steps:
-      - uses: actions/checkout@v3
-      - name: Set up JDK
-        uses: actions/setup-java@v3
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKER_HUB_USERNAME }}
-          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
-      - name: Extract short SHA
-        run: echo "SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_ENV
-      - name: Build & Push Docker image (latest)
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          file: Dockerfile
-          push: true
-          tags: |
-            ${{ env.DOCKER_IMAGE }}:latest
-            ${{ env.DOCKER_IMAGE }}:${{ env.SHORT_SHA }}
-
-  # ---------------------------
-  # Docker Build & Push (Release)
-  # ---------------------------
-  docker-release:
-    runs-on: ubuntu-latest
-    needs: test
-    if: startsWith(github.ref, 'refs/tags/v')
-    steps:
-      - uses: actions/checkout@v3
-      - name: Set up JDK
-        uses: actions/setup-java@v3
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKER_HUB_USERNAME }}
-          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
-      - name: Extract short SHA
-        run: echo "SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_ENV
-      - name: Build & Push Docker image (tagged release)
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          file: Dockerfile
-          push: true
-          tags: |
-            ${{ env.DOCKER_IMAGE }}:${{ github.ref_name }}
-            ${{ env.DOCKER_IMAGE }}:${{ env.SHORT_SHA }}
-
-  # ---------------------------
-  # E2E Tests
-  # ---------------------------
-  e2e-tests:
-    runs-on: ubuntu-latest
-    needs: docker-develop
-    env:
-      MYSQL_USER: ${{ secrets.MYSQL_USER }}
-      MYSQL_PASS: ${{ secrets.MYSQL_PASS }}
-      MYSQL_ROOT_PASS: ${{ secrets.ROOT_MYSQL_PASS }}
-      MYSQL_DATABASE: inventory_service
-
-    services:
-      mysql:
-        image: mysql:8.0.32
-        ports:
-          - 3306:3306
-        env:
-          MYSQL_ROOT_PASSWORD: ${{ secrets.ROOT_MYSQL_PASS }}
-          MYSQL_USER: ${{ secrets.MYSQL_USER }}
-          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASS }}
-          MYSQL_DATABASE: inventory_service
-        options: >-
-          --health-cmd="mysqladmin ping -h localhost"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-
-    steps:
-      - name: Pull Inventory Service image
-        run: docker pull ${{ env.DOCKER_IMAGE }}:dev-latest
-
-      - name: Run Inventory Service container
+      # --- Setup Maven settings with GitHub Packages credentials
+      - name: Setup Maven settings
         run: |
-          docker run -d --name inventory-service \
-            -p 8082:8082 \
-            -e SPRING_PROFILES_ACTIVE=docker \
-            -e SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/inventory_service \
-            -e SPRING_DATASOURCE_USERNAME=${{ secrets.MYSQL_USER }} \
-            -e SPRING_DATASOURCE_PASSWORD=${{ secrets.MYSQL_PASS }} \
-            --network ${{ job.services.mysql.network }} \
-            ${{ env.DOCKER_IMAGE }}:dev-latest
+          mkdir -p $HOME/.m2
+          cat > $HOME/.m2/settings.xml <<EOL
+          <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                    xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+                    https://maven.apache.org/xsd/settings-1.0.0.xsd">
+            <servers>
+              <server>
+                <id>github</id>
+                <username>${{ secrets.MAVEN_USERNAME }}</username>
+                <password>${{ secrets.MAVEN_TOKEN }}</password>
+              </server>
+            </servers>
+          </settings>
+          EOL
 
-      - name: Wait for service to be ready
+      # --- Build Inventory Service + run tests
+      - name: Build Inventory Service + run tests
+        env:
+          SPRING_PROFILES_ACTIVE: test
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/inventory_service
+          SPRING_DATASOURCE_USERNAME: postgres
+          SPRING_DATASOURCE_PASSWORD: postgres
+          SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.PostgreSQLDialect
+        run: mvn clean verify -B
+
+      # --- Docker login
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+
+      # --- Build & Push Docker image
+      - name: Extract short SHA
+        run: echo "SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_ENV
+
+      - name: Build & Push Docker image
+        run: |
+          docker build -t ${{ env.DOCKER_IMAGE }}:dev-latest .
+          docker tag ${{ env.DOCKER_IMAGE }}:dev-latest ${{ env.DOCKER_IMAGE }}:dev-${{ env.SHORT_SHA }}
+          docker push ${{ env.DOCKER_IMAGE }}:dev-latest
+          docker push ${{ env.DOCKER_IMAGE }}:dev-${{ env.SHORT_SHA }}
+
+      # --- Run Inventory Service container for API tests
+      - name: Run containers
+        run: |
+          docker network create test-network
+
+          docker run -d --name postgres \
+          --network test-network \
+          -e POSTGRES_DB=inventory_service \
+          -e POSTGRES_USER=postgres \
+          -e POSTGRES_PASSWORD=postgres \
+          postgres:14
+
+          echo "Waiting for postgres..."
+          sleep 10
+
+          docker run -d --name inventory-service \
+          --network test-network \
+          -p 8082:8082 \
+          -e SPRING_PROFILES_ACTIVE=docker \
+          -e SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/inventory_service \
+          -e SPRING_DATASOURCE_USERNAME=postgres \
+          -e SPRING_DATASOURCE_PASSWORD=postgres \
+          ${{ env.DOCKER_IMAGE }}:dev-latest
+
+      - name: Wait for service
         run: |
           for i in {1..30}; do
-            curl -s http://localhost:8082/actuator/health && break
-            echo "Waiting for service..."
+            if curl -s http://localhost:8082/actuator/health | grep UP; then
+              echo "Service is UP"
+              exit 0
+            fi
+            echo "Waiting..."
+            docker logs inventory-service | tail -20
             sleep 5
           done
+          echo "Service failed"
+          docker logs inventory-service
+          exit 1  
 
-      - name: Run API tests
+      - name: API test
         run: |
-          curl -v "http://localhost:8082/api/v1/inventory?skuCode=iphone_15&quantity=3" || exit 1
+          curl -f "http://localhost:8082/api/v1/admin/inventory"        
+          

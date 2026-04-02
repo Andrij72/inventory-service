@@ -1,0 +1,130 @@
+{
+  "info": {
+    "_postman_id": "38f9bfb7-0f00-4c4e-9081-f7596247f982",
+    "name": "Inventory Reservation Example",
+    "description": "Example for CRUD reservation over InventoryController",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "7173855"
+  },
+  "item": [
+    {
+      "name": "Check Stock Availability",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8082/api/v1/inventory/check?skuCode=S24-ULTRA&quantity=2",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8082",
+          "path": [
+            "api",
+            "v1",
+            "inventory",
+            "check"
+          ],
+          "query": [
+            {
+              "key": "skuCode",
+              "value": "S24-ULTRA"
+            },
+            {
+              "key": "quantity",
+              "value": "2"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Reserve Inventory",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"orderId\": \"ORDER-2\",\n  \"items\": [\n    {\n      \"skuCode\": \"S24-ULTRA\",\n      \"quantity\": 5\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8082/api/v1/inventory/reserve",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8082",
+          "path": [
+            "api",
+            "v1",
+            "inventory",
+            "reserve"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Confirm Reservation",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/api/v1/inventory/confirm?orderId=ORDER-1",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "v1",
+            "inventory",
+            "confirm"
+          ],
+          "query": [
+            {
+              "key": "orderId",
+              "value": "ORDER-1"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Cancel Reservation",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8082/api/v1/inventory/cancel?orderId=ORDER-2",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8082",
+          "path": [
+            "api",
+            "v1",
+            "inventory",
+            "cancel"
+          ],
+          "query": [
+            {
+              "key": "orderId",
+              "value": "ORDER-2"
+            }
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
