@@ -119,7 +119,7 @@ class InventorySagaOutboxIntegrationTest {
                             .anyMatch(o -> o.getEventType() == InventoryEventType.INVENTORY_CONFIRMED);
 
                     var inventory = inventoryRepository.findById("SKU1").orElseThrow();
-                    assertThat(inventory.getAvailableQuantity()).isEqualTo(0); // 10 - 10
+                    assertThat(inventory.getAvailableQuantity()).isEqualTo(0);
                 });
     }
 
