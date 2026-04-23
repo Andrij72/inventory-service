@@ -109,15 +109,11 @@ public class InventoryOutboxSagaHandler {
     @Transactional
     public void reserveOrderFromEvent(OrderPlacedEvent orderEvent) {
 
-
         for (OrderItem item : orderEvent.getItems()) {
-            boolean exists = outboxRepository.existsByAggregateIdAndSkuCodeAndEventType(
-                    orderEvent.getOrderNbr(), item.getSku(), InventoryEventType.INVENTORY_CONFIRMED
-            );
-            if (exists) return;
+
             Inventory inventory = inventoryRepository.findByIdForUpdate(item.getSku())
-                    .orElseThrow(() -> new IllegalStateException(
-                            "Inventory not found for SKU " + item.getSku()));
+                    .orElseThrow(() ->
+                            new IllegalStateException("Inventory not found for SKU " + item.getSku()));
 
             if (!inventory.canReserve(item.getQuantity())) {
 
@@ -125,13 +121,18 @@ public class InventoryOutboxSagaHandler {
                         orderEvent.getOrderNbr(),
                         item.getSku(),
                         InventoryEventType.INVENTORY_REJECTED,
-                        Map.of(
-                                "quantity", item.getQuantity()
-                        )
+                        Map.of("quantity", item.getQuantity())
                 );
 
-                continue;
+                return;
             }
+        }
+
+        for (OrderItem item : orderEvent.getItems()) {
+
+            Inventory inventory = inventoryRepository.findByIdForUpdate(item.getSku())
+                    .orElseThrow(() ->
+                            new IllegalStateException("Inventory not found for SKU " + item.getSku()));
 
             inventory.reserve(item.getQuantity());
             inventoryRepository.save(inventory);
@@ -142,17 +143,15 @@ public class InventoryOutboxSagaHandler {
                     item.getQuantity(),
                     reservationMinutes
             );
+
             reservationRepository.save(reservation);
 
             publishEvent(
                     orderEvent.getOrderNbr(),
                     item.getSku(),
                     InventoryEventType.INVENTORY_CONFIRMED,
-                    Map.of(
-                            "quantity", item.getQuantity()
-                    )
+                    Map.of("quantity", item.getQuantity())
             );
         }
     }
 }
-
